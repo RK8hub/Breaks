@@ -103,11 +103,114 @@ const dlg = $('#dlg');
 function openCfg() { const c = S.cfg; $('#cBal').value = c.bal ?? ''; $('#cDate').value = c.date; $('#cSem').value = c.sem; $('#cHrs').value = c.hrs; $('#cWeek').value = c.week; $('#cJan').value = c.jan != null && c.janY === +todayIso().slice(0, 4) ? c.jan : ''; dlg.showModal(); }
 $('#btnSettings').onclick = openCfg; $('#cCancel').onclick = () => dlg.close();
 $('#cfg').addEventListener('submit', () => { S.cfg = { bal: +$('#cBal').value, date: $('#cDate').value, sem: +$('#cSem').value, hrs: +$('#cHrs').value, week: $('#cWeek').value, jan: $('#cJan').value === '' ? null : +$('#cJan').value, janY: +todayIso().slice(0, 4) }; save(); render(); preview(); });
-$('#btnExport').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' })); a.download = `vacaciones-${todayIso()}.json`; a.click(); };
+/* ---------- Sincronización (exportar / importar estado) ---------- */
+const dlgSync = $('#dlgSync'), dlgCsv = $('#dlgCsv');
+[dlg, dlgSync, dlgCsv].forEach(d => d.addEventListener('click', e => { if (e.target === d) d.close(); }));
+const dl = (blob, name) => { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); };
+
+let pending = null;
+function resetImport() { pending = null; $('#fileIn').value = ''; $('#impBox').hidden = true; $('#impBox').classList.remove('err'); $('#impOk').hidden = true; $('#impMsg').innerHTML = ''; }
+$('#btnSync').onclick = () => { resetImport(); dlgSync.showModal(); };
+$('#syncX').onclick = $('#syncClose').onclick = () => dlgSync.close();
+
+function exportState() {
+  const payload = { app: 'breaks', schema: 3, exportado: new Date().toISOString(), cfg: S.cfg, entries: S.entries };
+  dl(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }), `breaks-sincronizacion-${todayIso()}.json`);
+}
+$('#optExport').onclick = exportState;
+
+function validateState(o) {
+  if (!o || typeof o !== 'object' || o.app !== 'breaks') return { ok: false, why: 'El archivo no parece un respaldo de breaks.' };
+  if (!o.cfg || typeof o.cfg !== 'object' || !Array.isArray(o.entries)) return { ok: false, why: 'El archivo tiene una estructura incompleta.' };
+  const n = (v, d) => Number.isFinite(+v) ? +v : d;
+  const dt = v => {
+    if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
+    const [y, m, d] = v.split('-').map(Number), x = new Date(y, m - 1, d);
+    return x.getFullYear() === y && x.getMonth() === m - 1 && x.getDate() === d ? v : null;
+  };
+  const cfg = {
+    bal: n(o.cfg.bal, 0),
+    date: dt(o.cfg.date) || DEF.cfg.date,
+    sem: n(o.cfg.sem, DEF.cfg.sem),
+    hrs: Math.max(1, n(o.cfg.hrs, DEF.cfg.hrs)),
+    week: ['mon-fri', 'mon-sat', 'all'].includes(o.cfg.week) ? o.cfg.week : DEF.cfg.week,
+    jan: o.cfg.jan == null || o.cfg.jan === '' ? null : n(o.cfg.jan, null),
+    janY: n(o.cfg.janY, 0)
+  };
+  const entries = o.entries.filter(e => e && typeof e === 'object').map(e => {
+    const type = e.type === 'hours' ? 'hours' : 'days';
+    const start = dt(e.start); if (!start) return null;
+    const end = dt(e.end) || start; if (end < start) return null;
+    const amt = n(type === 'hours' ? e.hours : e.days, 0); if (!(amt > 0)) return null;
+    const out = { id: typeof e.id === 'string' && e.id ? e.id : crypto.randomUUID(), type, start, end, note: typeof e.note === 'string' ? e.note.slice(0, 80) : '' };
+    type === 'hours' ? out.hours = amt : out.days = amt;
+    return out;
+  }).filter(Boolean);
+  return { ok: true, cfg, entries, at: typeof o.exportado === 'string' ? o.exportado : null, dropped: o.entries.length - entries.length };
+}
+
+function showImport(data) {
+  const box = $('#impBox'), msg = $('#impMsg');
+  box.hidden = false;
+  if (!data.ok) { box.classList.add('err'); msg.textContent = data.why; $('#impOk').hidden = true; pending = null; return; }
+  box.classList.remove('err'); pending = data;
+  const c = data.cfg, w = c.week === 'all' ? 'todos los días' : c.week === 'mon-sat' ? 'lunes a sábado' : 'lunes a viernes';
+  const items = [
+    data.at ? `Exportado el ${fd(data.at.slice(0, 10))}` : 'Sin fecha de exportación',
+    `${data.entries.length} descanso${data.entries.length === 1 ? '' : 's'} registrado${data.entries.length === 1 ? '' : 's'}`,
+    `Saldo al corte: ${n2(c.bal)} días · ${fd(c.date)}`,
+    `Acumulación: ${n2(c.sem)} días por semestre · ${n2(c.hrs)} h = 1 día · ${w}`
+  ];
+  if (data.dropped > 0) items.push(`${data.dropped} registro${data.dropped === 1 ? '' : 's'} inválido${data.dropped === 1 ? '' : 's'} ignorado${data.dropped === 1 ? '' : 's'}`);
+  msg.innerHTML = `<strong class="font-medium">Archivo válido.</strong> Al confirmar se reemplazarán por completo los datos de este dispositivo.<ul>${items.map(i => `<li>${i}</li>`).join('')}</ul>`;
+  $('#impOk').hidden = false;
+}
+
+$('#optImport').onclick = () => $('#fileIn').click();
+$('#fileIn').addEventListener('change', () => {
+  const f = $('#fileIn').files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => { let o = null; try { o = JSON.parse(r.result); } catch { } showImport(o ? validateState(o) : { ok: false, why: 'No se pudo leer el archivo. ¿Es un JSON válido?' }); };
+  r.onerror = () => showImport({ ok: false, why: 'No se pudo leer el archivo.' });
+  r.readAsText(f);
+});
+$('#impCancel').onclick = resetImport;
+$('#impOk').onclick = () => {
+  if (!pending) return;
+  S = { cfg: { ...DEF.cfg, ...pending.cfg }, entries: pending.entries };
+  save(); render(); preview(); dlgSync.close(); resetImport();
+};
+
+/* ---------- Exportación a hoja de cálculo (CSV) ---------- */
+$('#btnSheet').onclick = () => { const c = calc(); $('#csvFrom').value = c.last; $('#csvTo').value = c.nx; dlgCsv.showModal(); };
+$('#csvX').onclick = $('#csvCancel').onclick = () => dlgCsv.close();
+$('#csvForm').addEventListener('submit', ev => {
+  ev.preventDefault();
+  const from = $('#csvFrom').value, to = $('#csvTo').value;
+  if (from && to && from > to) return;
+  const rows = S.entries.filter(e => (!from || e.start >= from) && (!to || e.start <= to)).sort((a, b) => a.start.localeCompare(b.start));
+  if (!rows.length && !confirm('No hay descansos en ese rango. ¿Descargar la hoja vacía?')) return;
+  const t = todayIso(), cell = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const lines = [['Estado', 'Tipo', 'Desde', 'Hasta', 'Cantidad', 'Unidad', 'Nota'].join(';')];
+  rows.forEach(e => {
+    const st = e.start <= S.cfg.date ? 'Incluido en saldo base' : e.start > t ? 'Programado' : 'Descontado';
+    const h = e.type === 'hours';
+    lines.push([st, h ? 'Horas' : 'Días', fd(e.start), h ? '' : fd(e.end), h ? e.hours : e.days, h ? 'horas' : 'días', e.note || ''].map(cell).join(';'));
+  });
+  dl(new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' }), `breaks-descansos_${from || 'inicio'}_${to || 'hoy'}.csv`);
+  dlgCsv.close();
+});
 document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
 
 $('#start').value = $('#end').value = todayIso(); $('#target').value = `${todayIso().slice(0, 4)}-12-31`;
 render(); preview(); setType('days');
+const countUp = (el, dur = 900) => {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const raw = el.textContent.replace(/\./g, '').replace(',', '.'), to = +raw;
+  if (raw === '--' || !Number.isFinite(to)) return;
+  const t0 = performance.now();
+  (function f(t) { const k = Math.min(1, (t - t0) / dur); el.textContent = n2(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(f); })(t0);
+};
 if (S.cfg.bal === null) openCfg();
-else if (!matchMedia('(prefers-reduced-motion: reduce)').matches) { const to = calc().bal, t0 = performance.now(); (function f(t) { const k = Math.min(1, (t - t0) / 900); $('#balance').textContent = n2(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(f); })(t0); }
+else ['#balance', '#yTaken', '#atOut'].forEach(s => countUp($(s)));
 })();

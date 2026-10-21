@@ -14,12 +14,15 @@
 </head>
 <body class="bg-bg text-ink font-sans antialiased min-h-screen">
 <div class="max-w-6xl mx-auto px-4 sm:px-8 pb-12">
-<header class="pt-8 pb-6 flex items-end justify-between gap-4">
+<header class="pt-8 pb-6 flex flex-wrap items-end justify-between gap-4">
   <div>
     <h1 class="font-display text-3xl sm:text-4xl font-medium tracking-tight">Mis vacaciones</h1>
     <p class="font-display italic text-mute">Cuaderno de Raúl Emmanuel · <span id="today"></span></p>
   </div>
-  <button id="btnSettings" class="btn-ghost" type="button">Ajustar saldo base</button>
+  <div class="flex flex-wrap gap-2 justify-end">
+    <button id="btnSync" class="btn-ghost" type="button">Sincronizar <span aria-hidden="true">⇄</span></button>
+    <button id="btnSettings" class="btn-ghost" type="button">Ajustar saldo base</button>
+  </div>
 </header>
 
 <main class="grid gap-4 lg:grid-cols-3" aria-live="polite">
@@ -73,7 +76,7 @@
     </form>
   </section>
   <section class="card lg:col-span-2">
-    <div class="flex items-baseline justify-between gap-3"><h2 class="font-display text-xl font-medium">Bitácora</h2><button id="btnExport" class="btn-ghost" type="button">Exportar copia</button></div>
+    <div class="flex items-baseline justify-between gap-3"><h2 class="font-display text-xl font-medium">Bitácora</h2><button id="btnSheet" class="btn-ghost" type="button">Hoja de cálculo</button></div>
     <ul id="log" class="mt-3 border-t border-ink divide-y divide-line"></ul>
   </section>
 </main>
@@ -93,6 +96,49 @@
     <label class="grid gap-1 text-sm"><span class="text-mute">Días que cuentan al descansar</span>
       <select class="field" id="cWeek"><option value="mon-fri">Lunes a viernes</option><option value="mon-sat">Lunes a sábado</option><option value="all">Todos los días</option></select></label>
     <div class="flex justify-end gap-2"><button class="btn-ghost" type="button" id="cCancel">Cancelar</button><button class="btn" type="submit">Guardar</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlgSync" aria-labelledby="syncTitle">
+  <div class="dlg-head">
+    <h2 id="syncTitle" class="font-display text-2xl font-medium">Sincronizar</h2>
+    <button id="syncX" class="dlg-x" type="button" aria-label="Cerrar">✕</button>
+  </div>
+  <p class="text-sm text-mute mt-3">Lleva tu estado a otro dispositivo mediante un archivo. Al importarlo, el archivo reemplaza por completo los datos del dispositivo.</p>
+  <div class="menu mt-4">
+    <button id="optExport" class="opt" type="button">
+      <span class="opt-ico" aria-hidden="true">⬇</span>
+      <span class="opt-txt"><strong>Exportar estado</strong><small>Descarga un archivo .json con tu saldo, configuración y descansos registrados.</small></span>
+    </button>
+    <button id="optImport" class="opt" type="button">
+      <span class="opt-ico" aria-hidden="true">⬆</span>
+      <span class="opt-txt"><strong>Importar estado</strong><small>Restaura desde un archivo .json. Reemplaza lo que hay en este dispositivo.</small></span>
+    </button>
+  </div>
+  <input type="file" id="fileIn" accept="application/json,.json" hidden>
+  <div id="impBox" class="prev-box mt-4" hidden>
+    <div id="impMsg" class="text-sm"></div>
+    <div class="flex justify-end gap-2 mt-3">
+      <button id="impCancel" class="btn-ghost" type="button">Cancelar</button>
+      <button id="impOk" class="btn" type="button" hidden>Reemplazar y sincronizar</button>
+    </div>
+  </div>
+  <div class="flex justify-end gap-2 mt-4"><button id="syncClose" class="btn-ghost" type="button">Cerrar</button></div>
+</dialog>
+
+<dialog id="dlgCsv" aria-labelledby="csvTitle">
+  <form id="csvForm" class="grid gap-4">
+    <div class="dlg-head">
+      <h2 id="csvTitle" class="font-display text-2xl font-medium">Hoja de cálculo</h2>
+      <button id="csvX" class="dlg-x" type="button" aria-label="Cerrar">✕</button>
+    </div>
+    <p class="text-sm text-mute">Descarga los descansos registrados en formato CSV, listo para Excel o Google Sheets.</p>
+    <div class="grid grid-cols-2 gap-3">
+      <label class="grid gap-1 text-sm"><span class="text-mute">Desde</span><input class="field" type="date" id="csvFrom"></label>
+      <label class="grid gap-1 text-sm"><span class="text-mute">Hasta</span><input class="field" type="date" id="csvTo"></label>
+    </div>
+    <p class="text-sm text-mute">Se prellena con el cierre de vacaciones en curso. Déjalos vacíos para exportar todo.</p>
+    <div class="flex justify-end gap-2"><button class="btn-ghost" type="button" id="csvCancel">Cancelar</button><button class="btn" type="submit">Descargar</button></div>
   </form>
 </dialog>
 <script src="app.js"></script>

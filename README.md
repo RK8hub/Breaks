@@ -69,7 +69,7 @@ Este proyecto representa también una experiencia práctica en el uso de intelig
 - Listado de movimientos registrados.
 - Identificación de registros incluidos en el saldo base, descansos descontados y descansos programados.
 - Visualización de fechas, cantidades y notas.
-- Exportación de los datos de la aplicación en formato JSON.
+- Exportación de los descansos registrados a una hoja de cálculo (CSV), con rango de fechas configurable o de todo el historial.
 
 ### Configuración personalizada
 
@@ -81,6 +81,14 @@ La aplicación permite ajustar los parámetros utilizados para realizar los cál
 - Horas equivalentes a un día de vacaciones.
 - Días de la semana que deben contabilizarse como descanso.
 - Días descansados durante el año hasta la fecha de referencia.
+
+### Sincronización entre dispositivos
+
+- Exportación del estado completo (configuración y descansos) a un archivo JSON.
+- Importación del estado desde un archivo JSON, con vista previa antes de aplicar.
+- Al importar, el archivo reemplaza por completo los datos del dispositivo.
+- Validación del archivo antes de aplicar cambios; si el archivo no es válido, no se modifica nada.
+- Diseño adaptable, con cierre del menú mediante botón, clic fuera o la tecla Escape.
 
 ### Experiencia de usuario
 
@@ -193,7 +201,7 @@ Esto implica que:
 - No existe sincronización automática entre dispositivos.
 - No hay cuentas de usuario ni almacenamiento centralizado.
 - Borrar los datos del navegador puede provocar la pérdida de los registros guardados.
-- La aplicación permite exportar una copia de los datos en formato JSON.
+- La sincronización entre dispositivos se realiza exportando el estado a un archivo JSON y volviéndolo a importar en el otro dispositivo.
 
 Se recomienda realizar exportaciones periódicas y conservar los archivos de respaldo en un lugar seguro.
 

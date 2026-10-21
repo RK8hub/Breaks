@@ -1,0 +1,27 @@
+:root{--bg:#F3F3F2;--panel:#FFFFFF;--sunk:#EAEAE8;--line:#D4D4D1;--ink:#141414;--mute:#6C6C69;--danger:#141414;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#0E0E0E;--panel:#171717;--sunk:#1C1C1C;--line:#2C2C2C;--ink:#EDEDEA;--mute:#8E8E8A;--danger:#EDEDEA;color-scheme:dark}}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.field{width:100%;background:transparent;color:var(--ink);border:0;border-bottom:1px solid var(--ink);border-radius:0;padding:.5rem 0;font:inherit}
+.field:focus{outline:none;background:var(--sunk)}
+select.field option{background:var(--panel)}
+.btn{background:var(--ink);color:var(--bg);font-weight:500;border-radius:2px;padding:.75rem 1rem;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.btn-ghost{display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--ink);color:var(--ink);border-radius:2px;padding:.4rem .75rem;font-size:.875rem;transition:background .15s}
+.btn-ghost:hover{background:var(--sunk)}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--ink);border-radius:2px}
+.seg button{padding:.5rem;font-weight:500;color:var(--mute)}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+dialog{background:var(--panel);color:var(--ink);border:1px solid var(--ink);border-radius:2px;padding:1.75rem;width:min(26rem,92vw);margin:auto}
+dialog::backdrop{background:rgb(0 0 0/.55)}
+.chip{font-size:.75rem;padding:.1rem .5rem;border:1px solid var(--line);color:var(--mute)}
+.chip.plan{border:1px dashed var(--ink);color:var(--ink)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:1.25rem 1.5rem}
+.card-invert{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.field-invert{width:100%;background:transparent;color:inherit;border:1px solid currentColor;border-radius:2px;padding:.6rem .75rem;font:inherit}
+.field-invert::-webkit-calendar-picker-indicator{filter:invert(1)}
+.field-invert:focus-visible{outline-color:var(--bg)}
+.seg-c{background:var(--ink)}
+.seg-a{background:var(--mute)}
+.seg-f{background:repeating-linear-gradient(135deg,var(--mute) 0 2px,transparent 2px 5px);outline:1px solid var(--mute);outline-offset:-1px}
+.sw{display:inline-block;width:1rem;height:1rem;border-radius:2px;margin-top:.3rem;flex:none}
